@@ -7,6 +7,8 @@ import React, { useState } from 'react';
 import { Languages, ArrowRightLeft, Copy, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { getSuggestions } from '../../lib/transliteration/engine';
+import { LANGUAGES as INDIC_LANGS } from '../../lib/transliteration/languageConfig';
 
 function cn(...inputs: ClassValue[]) { return twMerge(clsx(inputs)); }
 
@@ -32,6 +34,7 @@ export const TranslatorPanel: React.FC = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<'semantic' | 'phonetic'>('phonetic');
 
   const handleTranslate = async () => {
     if (!sourceText.trim()) {
@@ -42,17 +45,36 @@ export const TranslatorPanel: React.FC = () => {
     setIsTranslating(true);
     setError(null);
     try {
-      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${fromLang}&tl=${toLang}&dt=t&q=${encodeURIComponent(sourceText)}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      
-      if (data && data[0]) {
-        const translated = data[0].map((s: any) => s[0]).join('');
-        setTargetText(translated);
+      if (mode === 'semantic') {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${fromLang}&tl=${toLang}&dt=t&q=${encodeURIComponent(sourceText)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data && data[0]) {
+          const translated = data[0].map((s: any) => s[0]).join('');
+          setTargetText(translated);
+        }
+      } else {
+        // PHONETIC TRANSLITERATION (Keeping the sound)
+        const words = sourceText.split(/\s+/);
+        const config = INDIC_LANGS.find(l => l.id === toLang);
+        
+        if (!config || !config.itc) {
+          setTargetText(sourceText);
+          return;
+        }
+
+        const results = await Promise.all(words.map(async (word) => {
+          if (!/^[a-zA-Z]+$/.test(word)) return word;
+          const suggestions = await getSuggestions(word, config.itc, config.sanscriptScheme);
+          return suggestions[0] || word;
+        }));
+        
+        setTargetText(results.join(' '));
       }
     } catch (err) {
       console.error('Translation error:', err);
-      setError('Failed to translate. Please try again.');
+      setError('Failed to process. Please try again.');
     } finally {
       setIsTranslating(false);
     }
@@ -77,9 +99,28 @@ export const TranslatorPanel: React.FC = () => {
       <div className="p-4 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
         <h2 className="text-[11px] font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
           <Languages size={14} className="text-blue-600" />
-          Semantic Translator
+          Indic Assistant
         </h2>
-        <Sparkles size={14} className="text-blue-600 animate-pulse" />
+        <div className="flex bg-white border border-gray-200 rounded-lg p-0.5">
+          <button 
+            onClick={() => setMode('phonetic')}
+            className={cn(
+              "px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+              mode === 'phonetic' ? "bg-blue-600 text-white shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+          >
+            Sound
+          </button>
+          <button 
+            onClick={() => setMode('semantic')}
+            className={cn(
+              "px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-md transition-all",
+              mode === 'semantic' ? "bg-blue-600 text-white shadow-sm" : "text-gray-400 hover:text-gray-600"
+            )}
+          >
+            Meaning
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-6">

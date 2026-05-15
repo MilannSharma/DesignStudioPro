@@ -67,7 +67,7 @@ export const Toolbar: React.FC = () => {
     const head = new Circle({ radius: 25, fill: '#e5e7eb', originX: 'center', originY: 'center', top: -20 });
     const body = new Rect({ width: 80, height: 40, fill: '#e5e7eb', rx: 20, ry: 20, originX: 'center', originY: 'center', top: 30 });
     const group = new Group([rect, head, body, label], { left: posX, top: posY, originX: 'center', originY: 'center', name: 'photo-placeholder' } as any);
-    canvas.add(group); canvas.setActiveObject(group); canvas.renderAll(); saveHistory(); setActiveTool('select');
+    canvas.add(group); canvas.setActiveObject(group); canvas.renderAll(); saveHistory('Add Shape Group'); setActiveTool('select');
   };
 
   const addTextImmediate = async (type: 'horizontal' | 'field', fieldInput?: string) => {
@@ -109,7 +109,7 @@ export const Toolbar: React.FC = () => {
       const text = new Textbox(content, options);
       c.add(text); c.setActiveObject(text); text.setCoords(); c.requestRenderAll();
       if (type === 'horizontal') setTimeout(() => { text.enterEditing(); text.selectAll(); c.requestRenderAll(); }, 100);
-      saveHistory(); setActiveTool('select'); setShowTextMenu(false);
+      saveHistory(`Add ${type === 'field' ? 'Field' : 'Text'}`); setActiveTool('select'); setShowTextMenu(false);
     } catch (err) { console.error('Failed to add text:', err); }
   };
 
@@ -257,7 +257,7 @@ export const Toolbar: React.FC = () => {
                   const top = (settings.height * scale) / 2 - h / 2;
                   const rr = createRoundedRect(left, top, w, h);
                   canvas?.add(rr); canvas?.setActiveObject(rr); canvas?.requestRenderAll();
-                  saveHistory(); setActiveTool('select');
+                  saveHistory('Add Rectangle'); setActiveTool('select');
                 }
                 else if (tool.id === ('callout' as any)) {
                   const { settings } = useStore.getState();
@@ -268,7 +268,7 @@ export const Toolbar: React.FC = () => {
                   const top = (settings.height * scale) / 2 - h / 2;
                   const co = createCallout(left, top, w, h, 'right');
                   canvas?.add(co); canvas?.setActiveObject(co); canvas?.requestRenderAll();
-                  saveHistory(); setActiveTool('select');
+                  saveHistory('Add Circle'); setActiveTool('select');
                 }
                 else if (tool.id === ('spiral' as any)) {
                   const { settings } = useStore.getState();
@@ -277,7 +277,7 @@ export const Toolbar: React.FC = () => {
                   const cy = (settings.height * scale) / 2;
                   const sp = createSpiral(cx, cy, 3, 8);
                   canvas?.add(sp); canvas?.setActiveObject(sp); canvas?.requestRenderAll();
-                  saveHistory(); setActiveTool('select');
+                  saveHistory('Add Triangle'); setActiveTool('select');
                 }
                 else { setActiveTool(tool.id); setShowTextMenu(false); }
                 setShowFileMenu(false);
@@ -323,7 +323,7 @@ export const Toolbar: React.FC = () => {
       
       {/* Hidden inputs */}
       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e=>{
-        const f=e.target.files?.[0]; if(f){const r=new FileReader();r.onload=ev=>{importImage(ev.target?.result as string,canvas!,saveHistory,setActiveTool);};r.readAsDataURL(f);}
+        const f=e.target.files?.[0]; if(f){const r=new FileReader();r.onload=ev=>{importImage(ev.target?.result as string,canvas!,() => saveHistory('Upload Image'),setActiveTool);};r.readAsDataURL(f);}
       }}/>
       <input type="color" ref={colorPickerRef} className="hidden" onChange={e => {
         const color = e.target.value;

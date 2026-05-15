@@ -69,7 +69,7 @@ export const SearchReplaceModal: React.FC<{ onClose: () => void }> = ({ onClose 
     }
 
     setIsFinished(true);
-    saveHistory();
+    saveHistory('Search & Replace');
   };
 
   return (

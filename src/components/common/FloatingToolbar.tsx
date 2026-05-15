@@ -50,13 +50,13 @@ export const FloatingToolbar: React.FC = () => {
       c.set({ left: c.left + 20, top: c.top + 20 });
       if (c.type === 'activeSelection') { c.canvas = canvas; c.forEachObject((o: any) => canvas?.add(o)); }
       else canvas?.add(c);
-      canvas?.setActiveObject(c); canvas?.requestRenderAll(); saveHistory();
+      canvas?.setActiveObject(c); canvas?.requestRenderAll(); saveHistory('Duplicate Object');
     });
   };
 
   const del = () => {
     canvas?.getActiveObjects().forEach(o => canvas.remove(o));
-    canvas?.discardActiveObject(); canvas?.renderAll(); saveHistory();
+    canvas?.discardActiveObject(); canvas?.renderAll(); saveHistory('Delete Object');
   };
 
   const INDIC_SAMPLES: { [key: string]: string } = {
@@ -91,7 +91,7 @@ export const FloatingToolbar: React.FC = () => {
       setTimeout(() => canvas?.renderAll(), 50);
       setTimeout(() => canvas?.renderAll(), 150);
     }
-    saveHistory();
+    saveHistory(`Update ${key.charAt(0).toUpperCase() + key.slice(1)}`);
   };
 
   const toggleArtisticMode = () => {
@@ -117,7 +117,7 @@ export const FloatingToolbar: React.FC = () => {
       } as any);
     }
     canvas?.renderAll();
-    saveHistory();
+    saveHistory('Toggle Artistic Mode');
   };
 
   const applyCurvedPath = async () => {
@@ -134,7 +134,7 @@ export const FloatingToolbar: React.FC = () => {
       selected.set('path', path);
     }
     canvas.renderAll();
-    saveHistory();
+    saveHistory('Curved Text');
   };
 
   return (
@@ -237,8 +237,8 @@ export const FloatingToolbar: React.FC = () => {
 
         {/* Layering */}
         {sep}
-        <button onClick={() => { canvas?.bringObjectToFront(selected); canvas?.renderAll(); saveHistory(); }} className={btn} title="Bring Front"><ArrowUpToLine size={14} /></button>
-        <button onClick={() => { canvas?.sendObjectToBack(selected); canvas?.renderAll(); saveHistory(); }} className={btn} title="Send Back"><ArrowDownToLine size={14} /></button>
+        <button onClick={() => { canvas?.bringObjectToFront(selected); canvas?.renderAll(); saveHistory('Bring to Front'); }} className={btn} title="Bring Front"><ArrowUpToLine size={14} /></button>
+        <button onClick={() => { canvas?.sendObjectToBack(selected); canvas?.renderAll(); saveHistory('Send to Back'); }} className={btn} title="Send Back"><ArrowDownToLine size={14} /></button>
       </div>
     </div>
   );

@@ -33,7 +33,7 @@ export const GradientPanel: React.FC = () => {
 
     active.set('fill', grad);
     canvas.renderAll();
-    saveHistory();
+    saveHistory('Apply Gradient');
   };
 
   return (

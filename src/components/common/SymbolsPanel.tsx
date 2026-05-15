@@ -34,7 +34,7 @@ export const SymbolsPanel: React.FC = () => {
       canvas.add(obj);
       canvas.setActiveObject(obj);
       canvas.renderAll();
-      useStore.getState().saveHistory();
+      useStore.getState().saveHistory('Insert Symbol');
     });
   };
 

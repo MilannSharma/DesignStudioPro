@@ -34,11 +34,11 @@ export const LayersPanel: React.FC = () => {
 
   const objects = (canvas?.getObjects() || []).filter(obj => !(obj as any).isPageBackground);
 
-  const toggleVis = (obj: any) => { obj.set('visible', !obj.visible); canvas?.renderAll(); useStore.getState().saveHistory(); };
+  const toggleVis = (obj: any) => { obj.set('visible', !obj.visible); canvas?.renderAll(); useStore.getState().saveHistory(`${obj.visible ? 'Show' : 'Hide'} Layer`); };
   const toggleLock = (obj: any) => {
     const l = !obj.lockMovementX;
     obj.set({ lockMovementX: l, lockMovementY: l, lockScalingX: l, lockScalingY: l, lockRotation: l, editable: !l, hasControls: !l });
-    canvas?.renderAll(); useStore.getState().saveHistory();
+    canvas?.renderAll(); useStore.getState().saveHistory(`${l ? 'Lock' : 'Unlock'} Layer`);
   };
 
   const handleDragStart = (uid: string) => setDraggedUid(uid);
@@ -52,7 +52,7 @@ export const LayersPanel: React.FC = () => {
     const obj = objs[fromIdx];
     canvas.moveTo(obj, toIdx);
     canvas.renderAll();
-    useStore.getState().saveHistory();
+    useStore.getState().saveHistory('Reorder Layer');
     setDraggedUid(null);
   };
 

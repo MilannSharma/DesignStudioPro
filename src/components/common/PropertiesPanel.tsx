@@ -104,7 +104,7 @@ export const PropertiesPanel: React.FC = () => {
     }
     active.setCoords();
     canvas.renderAll();
-    saveHistory();
+    saveHistory(`Align ${type.charAt(0).toUpperCase() + type.slice(1)}`);
   };
 
   const handleDistribute = (dir: 'h' | 'v') => {
@@ -129,7 +129,7 @@ export const PropertiesPanel: React.FC = () => {
     }
     active.setCoords();
     canvas.renderAll();
-    saveHistory();
+    saveHistory(`Distribute ${dir === 'h' ? 'Horizontally' : 'Vertically'}`);
   };
 
   // Multi-select panel
@@ -353,13 +353,14 @@ export const PropertiesPanel: React.FC = () => {
     'Noto Sans Arabic': 'مرحبا (Marhaba)'
   };
 
-  const up = (key:string,val:any) => { 
+  const up = (key:string,val:any, customLabel?: string) => { 
     if(typeof val==='number'&&isNaN(val))return; 
     selected.set(key as any,val);
     if (key === 'fontFamily' && INDIC_SAMPLES[val] && (selected as any).text?.match(/edit|text|field/i)) {
       (selected as any).set('text', INDIC_SAMPLES[val]);
     }
-    canvas?.renderAll(); saveHistory(); 
+    canvas?.renderAll(); 
+    saveHistory(customLabel || `Update ${key.charAt(0).toUpperCase() + key.slice(1)}`); 
   };
   const isText = selected.type==='i-text'||selected.type==='textbox';
   const isImage = selected.type==='image';
@@ -392,8 +393,8 @@ export const PropertiesPanel: React.FC = () => {
         <div className="grid grid-cols-2 gap-3">
           <PI label={`X (${settings.unit})`} value={Math.round(pxToUnit(selected.left||0) * 100) / 100} onChange={v=>up('left',unitToPx(parseFloat(v)))}/>
           <PI label={`Y (${settings.unit})`} value={Math.round(pxToUnit(selected.top||0) * 100) / 100} onChange={v=>up('top',unitToPx(parseFloat(v)))}/>
-          <PI label={`W (${settings.unit})`} value={Math.round(pxToUnit((selected.width||0)*(selected.scaleX||1)) * 100) / 100} onChange={v=>{const nw=unitToPx(parseFloat(v));selected.set({scaleX:nw/(selected.width||1)});canvas?.renderAll();saveHistory();}}/>
-          <PI label={`H (${settings.unit})`} value={Math.round(pxToUnit((selected.height||0)*(selected.scaleY||1)) * 100) / 100} onChange={v=>{const nh=unitToPx(parseFloat(v));selected.set({scaleY:nh/(selected.height||1)});canvas?.renderAll();saveHistory();}}/>
+          <PI label={`W (${settings.unit})`} value={Math.round(pxToUnit((selected.width||0)*(selected.scaleX||1)) * 100) / 100} onChange={v=>{const nw=unitToPx(parseFloat(v));selected.set({scaleX:nw/(selected.width||1)});canvas?.renderAll();saveHistory('Update Width');}}/>
+          <PI label={`H (${settings.unit})`} value={Math.round(pxToUnit((selected.height||0)*(selected.scaleY||1)) * 100) / 100} onChange={v=>{const nh=unitToPx(parseFloat(v));selected.set({scaleY:nh/(selected.height||1)});canvas?.renderAll();saveHistory('Update Height');}}/>
           <PI label="ROTATION" value={Math.round(selected.angle||0)} onChange={v=>up('angle',parseInt(v))}/>
           <PI label="SKEW X" value={Math.round(selected.skewX||0)} onChange={v=>up('skewX',parseInt(v))}/>
           <PI label="SKEW Y" value={Math.round(selected.skewY||0)} onChange={v=>up('skewY',parseInt(v))}/>
@@ -631,10 +632,10 @@ export const PropertiesPanel: React.FC = () => {
       <section className="p-4 border-b border-gray-100">
         <h3 className="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-3 flex items-center gap-1"><Layers size={10}/>Arrangement</h3>
         <div className="grid grid-cols-2 gap-1.5">
-          <AB onClick={()=>{canvas?.bringObjectToFront(selected);canvas?.renderAll();saveHistory();}}><ChevronUp size={10} className="inline mr-1"/>Front</AB>
-          <AB onClick={()=>{canvas?.sendObjectToBack(selected);canvas?.renderAll();saveHistory();}}><ChevronDown size={10} className="inline mr-1"/>Back</AB>
-          <AB onClick={()=>{canvas?.bringObjectForward(selected);canvas?.renderAll();saveHistory();}}>Forward</AB>
-          <AB onClick={()=>{canvas?.sendObjectBackwards(selected);canvas?.renderAll();saveHistory();}}>Backward</AB>
+          <AB onClick={()=>{canvas?.bringObjectToFront(selected);canvas?.renderAll();saveHistory('Bring to Front');}}><ChevronUp size={10} className="inline mr-1"/>Front</AB>
+          <AB onClick={()=>{canvas?.sendObjectToBack(selected);canvas?.renderAll();saveHistory('Send to Back');}}><ChevronDown size={10} className="inline mr-1"/>Back</AB>
+          <AB onClick={()=>{canvas?.bringObjectForward(selected);canvas?.renderAll();saveHistory('Bring Forward');}}>Forward</AB>
+          <AB onClick={()=>{canvas?.sendObjectBackwards(selected);canvas?.renderAll();saveHistory('Send Backward');}}>Backward</AB>
         </div>
       </section>
 
@@ -642,8 +643,8 @@ export const PropertiesPanel: React.FC = () => {
       <section className="p-4">
         <h3 className="text-[9px] text-gray-400 font-black uppercase tracking-widest mb-3">Operations</h3>
         <div className="grid grid-cols-2 gap-1.5">
-          <AB onClick={()=>{s.set('flipX',!s.flipX);canvas?.renderAll();saveHistory();}}><FlipHorizontal size={10} className="inline mr-1"/>Flip H</AB>
-          <AB onClick={()=>{s.set('flipY',!s.flipY);canvas?.renderAll();saveHistory();}}><FlipVertical size={10} className="inline mr-1"/>Flip V</AB>
+          <AB onClick={()=>{s.set('flipX',!s.flipX);canvas?.renderAll();saveHistory('Flip Horizontal');}}><FlipHorizontal size={10} className="inline mr-1"/>Flip H</AB>
+          <AB onClick={()=>{s.set('flipY',!s.flipY);canvas?.renderAll();saveHistory('Flip Vertical');}}><FlipVertical size={10} className="inline mr-1"/>Flip V</AB>
         </div>
       </section>
     </div>

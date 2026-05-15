@@ -30,7 +30,21 @@ const COMMON_DICTIONARY: Record<string, string> = {
   rajesh: 'राजेश',
   ram: 'राम',
   krishna: 'कृष्ण',
-  shiv: 'शिव'
+  shiv: 'शिव',
+  rajput: 'राजपूत',
+  priyansh: 'प्रियंश',
+  design: 'डिजाइन',
+  studio: 'स्टूडियो',
+  pamplet: 'पम्फलेट',
+  card: 'कार्ड',
+  adhar: 'आधार',
+  id: 'आईडी',
+  name: 'नाम',
+  my: 'माय',
+  me: 'मी',
+  am: 'एम',
+  is: 'इज',
+  hello: 'हेलो'
 };
 
 export function transliterate(text: string, sanscriptScheme: string): string {
@@ -65,7 +79,18 @@ export async function getSuggestions(text: string, itc: string, sanscriptScheme:
     return suggestionCache.get(cacheKey)!;
   }
 
-  // FIRST PRIORITY: Google Input Tools API (Extremely accurate phonetics)
+  const lower = text.trim().toLowerCase();
+
+  // FIRST PRIORITY: Custom Dictionary (Strict Phonetic Accuracy)
+  if (sanscriptScheme && (sanscriptScheme === 'devanagari' || sanscriptScheme === 'marathi')) {
+    if (COMMON_DICTIONARY[lower]) {
+      const result = [COMMON_DICTIONARY[lower]];
+      suggestionCache.set(cacheKey, result);
+      return result;
+    }
+  }
+
+  // SECOND PRIORITY: Google Input Tools API (Dynamic Phonetics)
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000); // Give Google 2 seconds
@@ -94,17 +119,8 @@ export async function getSuggestions(text: string, itc: string, sanscriptScheme:
     console.warn("Google Input Tools failed. Falling back to offline dictionary/Sanscript.");
   }
 
-  // FALLBACK: Offline Dictionary + Sanscript (Rigid scientific rules)
+  // FALLBACK: Sanscript (Rigid scientific rules)
   if (sanscriptScheme) {
-    // If the word matches our expanded dictionary, return that first!
-    const lower = text.trim().toLowerCase();
-    if ((sanscriptScheme === 'devanagari' || sanscriptScheme === 'marathi') && COMMON_DICTIONARY[lower]) {
-      const result = [COMMON_DICTIONARY[lower]];
-      suggestionCache.set(cacheKey, result);
-      return result;
-    }
-
-    // Otherwise use rigid ITRANS
     const fallback = transliterate(text, sanscriptScheme);
     if (fallback && fallback !== text) {
       const result = [fallback];

@@ -92,7 +92,7 @@ export const TopBar: React.FC = () => {
               canvas.renderAll();
               const fn = useStore.getState().updatePageBackgroundFn;
               if (fn) fn();
-              useStore.getState().saveHistory();
+              useStore.getState().saveHistory('Load Project');
             };
             if (loadPromise && loadPromise.then) {
               loadPromise.then(handleLoaded);
@@ -124,7 +124,7 @@ export const TopBar: React.FC = () => {
       const group = new Group(objs);
       canvas.discardActiveObject(); objs.forEach(o => canvas.remove(o));
       canvas.add(group); canvas.setActiveObject(group); canvas.renderAll();
-      useStore.getState().saveHistory();
+      useStore.getState().saveHistory('Group Objects');
     }
     setActiveMenu(null);
   };
@@ -132,7 +132,7 @@ export const TopBar: React.FC = () => {
   const handleUngroup = () => {
     if (!canvas) return;
     const active = canvas.getActiveObject();
-    if (active instanceof Group) { (active as any).toActiveSelection(); canvas.renderAll(); useStore.getState().saveHistory(); }
+    if (active instanceof Group) { (active as any).toActiveSelection(); canvas.renderAll(); useStore.getState().saveHistory('Ungroup Objects'); }
     setActiveMenu(null);
   };
 
@@ -145,7 +145,7 @@ export const TopBar: React.FC = () => {
       cloned.set({ left: cloned.left + 20, top: cloned.top + 20, evented: true });
       if (cloned.type === 'activeSelection') { cloned.canvas = canvas; cloned.forEachObject((o: any) => canvas.add(o)); }
       else canvas.add(cloned);
-      canvas.setActiveObject(cloned); canvas.requestRenderAll(); useStore.getState().saveHistory();
+      canvas.setActiveObject(cloned); canvas.requestRenderAll(); useStore.getState().saveHistory('Duplicate Object');
     });
     setActiveMenu(null);
   };
@@ -185,7 +185,7 @@ export const TopBar: React.FC = () => {
                   <MA label="Duplicate (Ctrl+D)" onClick={handleDuplicate} />
                   <MA label="Delete Selected" onClick={() => {
                     canvas?.getActiveObjects().forEach(o => canvas.remove(o));
-                    canvas?.discardActiveObject(); canvas?.renderAll(); useStore.getState().saveHistory(); setActiveMenu(null);
+                    canvas?.discardActiveObject(); canvas?.renderAll(); useStore.getState().saveHistory('Delete Object'); setActiveMenu(null);
                   }} />
                   <div className="h-px bg-gray-50 my-1.5" />
                   <MA label="Search & Replace" onClick={() => { setShowSearchReplace(true); setActiveMenu(null); }} />
@@ -220,7 +220,7 @@ export const TopBar: React.FC = () => {
                   <MA label="Duplicate Layer" onClick={() => { handleDuplicate(); setActiveMenu(null); }} />
                   <MA label="Delete" onClick={() => {
                     canvas?.getActiveObjects().forEach(o => canvas.remove(o));
-                    canvas?.discardActiveObject(); canvas?.renderAll(); useStore.getState().saveHistory(); setActiveMenu(null);
+                    canvas?.discardActiveObject(); canvas?.renderAll(); useStore.getState().saveHistory('Delete Object'); setActiveMenu(null);
                   }} />
                   <div className="h-px bg-gray-50 my-1.5" />
                   <MA label="Group Layers" onClick={() => setActiveMenu(null)} />
