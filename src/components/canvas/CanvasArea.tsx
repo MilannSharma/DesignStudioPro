@@ -8,7 +8,15 @@ import { SuggestionPopup } from './SuggestionPopup';
 
 import { createRoundedRect, createCallout, createSpiral } from '../../utils/shapeUtils';
 
-interface SmartGuide { type: 'h' | 'v'; pos: number; }
+interface SmartGuide { 
+  type: 'h' | 'v'; 
+  pos: number; 
+  isGap?: boolean; 
+  label?: string; 
+  gapStart?: number; 
+  gapEnd?: number;
+  secondaryPos?: number;
+}
 
 export const CanvasArea: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -224,9 +232,9 @@ export const CanvasArea: React.FC = () => {
     const tcx = tb.left + tb.width / 2, tcy = tb.top + tb.height / 2;
     const s = useStore.getState().settings;
     const scale = getDisplayScale(s.width, s.height);
-    const THRESH = 6 * scale;
+    const THRESH = 8 * scale;
 
-    // Canvas edges and center
+    // 1. Standard Alignment Guides
     if (Math.abs(tb.left) < THRESH) guides.push({ type: 'v', pos: 0 });
     if (Math.abs(tb.left + tb.width - dims.width) < THRESH) guides.push({ type: 'v', pos: dims.width });
     if (Math.abs(tcx - dims.width / 2) < THRESH) guides.push({ type: 'v', pos: dims.width / 2 });
@@ -235,26 +243,93 @@ export const CanvasArea: React.FC = () => {
     if (Math.abs(tb.top + tb.height - dims.height) < THRESH) guides.push({ type: 'h', pos: dims.height });
     if (Math.abs(tcy - dims.height / 2) < THRESH) guides.push({ type: 'h', pos: dims.height / 2 });
 
-    canvas.getObjects().forEach(obj => {
-      if (obj === target || (obj as any).isPageBackground) return;
+    const otherObjects = canvas.getObjects().filter(obj => obj !== target && !(obj as any).isPageBackground);
+
+    otherObjects.forEach(obj => {
       const ob = obj.getBoundingRect();
       const ocx = ob.left + ob.width / 2, ocy = ob.top + ob.height / 2;
       
-      // Left, Right, Center X
-      if (Math.abs(tb.left - ob.left) < THRESH) guides.push({ type: 'v', pos: ob.left });
+      // Vertical Alignment
+      if (Math.abs(tb.left - ob.left) < THRESH) guides.push({ type: 'v', pos: ob.left, secondaryPos: Math.min(tb.top, ob.top) });
       if (Math.abs(tb.left + tb.width - ob.left - ob.width) < THRESH) guides.push({ type: 'v', pos: ob.left + ob.width });
       if (Math.abs(tcx - ocx) < THRESH) guides.push({ type: 'v', pos: ocx });
-      
-      // Top, Bottom, Center Y
+      if (Math.abs(tb.left - (ob.left + ob.width)) < THRESH) guides.push({ type: 'v', pos: ob.left + ob.width });
+      if (Math.abs((tb.left + tb.width) - ob.left) < THRESH) guides.push({ type: 'v', pos: ob.left });
+
+      // Horizontal Alignment
       if (Math.abs(tb.top - ob.top) < THRESH) guides.push({ type: 'h', pos: ob.top });
       if (Math.abs(tb.top + tb.height - ob.top - ob.height) < THRESH) guides.push({ type: 'h', pos: ob.top + ob.height });
       if (Math.abs(tcy - ocy) < THRESH) guides.push({ type: 'h', pos: ocy });
+      if (Math.abs(tb.top - (ob.top + ob.height)) < THRESH) guides.push({ type: 'h', pos: ob.top + ob.height });
+      if (Math.abs((tb.top + tb.height) - ob.top) < THRESH) guides.push({ type: 'h', pos: ob.top });
     });
 
-    // Deduplicate and limit
+    // 2. Canva-style Gap Detection (Spacing Distribution)
+    // Horizontal Gaps
+    const hNeighbors = otherObjects.filter(obj => {
+      const ob = obj.getBoundingRect();
+      return Math.max(tb.top, ob.top) < Math.min(tb.top + tb.height, ob.top + ob.height);
+    }).sort((a, b) => a.getBoundingRect().left - b.getBoundingRect().left);
+
+    hNeighbors.forEach((obj, idx) => {
+      const ob = obj.getBoundingRect();
+      if (ob.left > tb.left + tb.width) { // Object is to the right
+        const gap = ob.left - (tb.left + tb.width);
+        if (gap > 2 && gap < 300) { // Slightly wider range but ignore tiny gaps
+          guides.push({ 
+            type: 'h', pos: tb.top + tb.height / 2, isGap: true, 
+            gapStart: tb.left + tb.width, gapEnd: ob.left, 
+            label: (gap / (s.dpi/25.4)).toFixed(1)
+          });
+        }
+      } else if (ob.left + ob.width < tb.left) { // Object is to the left
+        const gap = tb.left - (ob.left + ob.width);
+        if (gap > 2 && gap < 300) {
+          guides.push({ 
+            type: 'h', pos: tb.top + tb.height / 2, isGap: true, 
+            gapStart: ob.left + ob.width, gapEnd: tb.left, 
+            label: (gap / (s.dpi/25.4)).toFixed(1)
+          });
+        }
+      }
+    });
+
+    // Vertical Gaps
+    const vNeighbors = otherObjects.filter(obj => {
+      const ob = obj.getBoundingRect();
+      return Math.max(tb.left, ob.left) < Math.min(tb.left + tb.width, ob.left + ob.width);
+    }).sort((a, b) => a.getBoundingRect().top - b.getBoundingRect().top);
+
+    vNeighbors.forEach(obj => {
+      const ob = obj.getBoundingRect();
+      if (ob.top > tb.top + tb.height) { // Below
+        const gap = ob.top - (tb.top + tb.height);
+        if (gap > 0 && gap < 200) {
+          guides.push({ 
+            type: 'v', pos: tb.left + tb.width / 2, isGap: true, 
+            gapStart: tb.top + tb.height, gapEnd: ob.top, 
+            label: (gap / (s.dpi/25.4)).toFixed(1)
+          });
+        }
+      } else if (ob.top + ob.height < tb.top) { // Above
+        const gap = tb.top - (ob.top + ob.height);
+        if (gap > 0 && gap < 200) {
+          guides.push({ 
+            type: 'v', pos: tb.left + tb.width / 2, isGap: true, 
+            gapStart: ob.top + ob.height, gapEnd: tb.top, 
+            label: (gap / (s.dpi/25.4)).toFixed(1)
+          });
+        }
+      }
+    });
+
+    // Deduplicate and prioritize
     const unique: Record<string, SmartGuide> = {};
-    guides.forEach(g => { unique[`${g.type}-${Math.round(g.pos)}`] = g; });
-    return Object.values(unique).slice(0, 4); // Don't show too many lines
+    guides.forEach(g => { 
+      const key = g.isGap ? `gap-${g.type}-${Math.round(g.gapStart!)}-${Math.round(g.gapEnd!)}` : `${g.type}-${Math.round(g.pos)}`;
+      if (!unique[key]) unique[key] = g;
+    });
+    return Object.values(unique).slice(0, 8); 
   };
 
   useEffect(() => {
@@ -362,7 +437,6 @@ export const CanvasArea: React.FC = () => {
     fabricCanvas.on('object:moving', (options) => {
       const target = options.target;
       if (target && !(target as any).isPageBackground) {
-        (target as any).isMoving = true;
         const objRect = target.getBoundingRect();
 
         const guides = computeSmartGuides(target, fabricCanvas);
@@ -424,7 +498,6 @@ export const CanvasArea: React.FC = () => {
     fabricCanvas.on('object:scaling', (options) => {
       const target = options.target;
       if (target && !(target as any).isPageBackground) {
-        (target as any).isScaling = true;
         const guides = computeSmartGuides(target, fabricCanvas);
         smartGuidesRef.current = guides;
         fabricCanvas.requestRenderAll();
@@ -434,8 +507,6 @@ export const CanvasArea: React.FC = () => {
     fabricCanvas.on('object:modified', (e) => { 
       smartGuidesRef.current = []; 
       if (e.target) {
-        (e.target as any).isMoving = false;
-        (e.target as any).isScaling = false;
         enforceBoundaries(e.target);
         e.target.set('objectCaching', true);
       }
@@ -1250,40 +1321,6 @@ export const CanvasArea: React.FC = () => {
       const toScreenX = (x: number) => x * currentZoom + vpt[4];
       const toScreenY = (y: number) => y * currentZoom + vpt[5];
 
-      const drawDistanceLabel = (x: number, y: number, text: string) => {
-        const padding = 4;
-        const fontSize = 10;
-        ctx.font = `bold ${fontSize}px Inter, sans-serif`;
-        const metrics = ctx.measureText(text);
-        const w = metrics.width + padding * 3;
-        const h = fontSize + padding * 2;
-
-        ctx.save();
-        ctx.setLineDash([]);
-        ctx.fillStyle = '#de1fe9'; // Canva Magenta
-        
-        // Draw rounded rect
-        const r = 4;
-        ctx.beginPath();
-        ctx.moveTo(x - w / 2 + r, y - h / 2);
-        ctx.lineTo(x + w / 2 - r, y - h / 2);
-        ctx.quadraticCurveTo(x + w / 2, y - h / 2, x + w / 2, y - h / 2 + r);
-        ctx.lineTo(x + w / 2, y + h / 2 - r);
-        ctx.quadraticCurveTo(x + w / 2, y + h / 2, x + w / 2 - r, y + h / 2);
-        ctx.lineTo(x - w / 2 + r, y + h / 2);
-        ctx.quadraticCurveTo(x - w / 2, y + h / 2, x - w / 2, y + h / 2 - r);
-        ctx.lineTo(x - w / 2, y - h / 2 + r);
-        ctx.quadraticCurveTo(x - w / 2, y - h / 2, x - w / 2 + r, y - h / 2);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(text, x, y + 0.5);
-        ctx.restore();
-      };
-
       // ── GRID ───────────────────────────────────────────────────────────────
       if (state.showGrid) {
         const grid = getScaledSnapGrid();
@@ -1331,79 +1368,73 @@ export const CanvasArea: React.FC = () => {
       });
 
       // Smart Guides (Canva-style Magenta/Cyan)
-      ctx.setLineDash([5, 5]);
-      ctx.lineWidth = 1;
       smartGuidesRef.current.forEach(g => {
-        ctx.strokeStyle = '#de1fe9'; // Magenta
-        ctx.beginPath();
-        if (g.type === 'h') {
-          const sy = toScreenY(g.pos);
-          ctx.moveTo(0, sy); ctx.lineTo(canvasW, sy);
+        ctx.save();
+        if (g.isGap) {
+          // Draw Gap Distance (Canva Magenta Style)
+          ctx.strokeStyle = 'rgba(222, 31, 233, 0.8)';
+          ctx.fillStyle = 'rgba(222, 31, 233, 0.9)';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          
+          const start = g.type === 'h' ? toScreenX(g.gapStart!) : toScreenY(g.gapStart!);
+          const end = g.type === 'h' ? toScreenX(g.gapEnd!) : toScreenY(g.gapEnd!);
+          const mid = (start + end) / 2;
+          const pos = g.type === 'h' ? toScreenY(g.pos) : toScreenX(g.pos);
+
+          ctx.beginPath();
+          if (g.type === 'h') {
+            // Horizontal Gap line with end caps
+            ctx.moveTo(start, pos - 5); ctx.lineTo(start, pos + 5);
+            ctx.moveTo(start, pos); ctx.lineTo(end, pos);
+            ctx.moveTo(end, pos - 5); ctx.lineTo(end, pos + 5);
+          } else {
+            // Vertical Gap line with end caps
+            ctx.moveTo(pos - 5, start); ctx.lineTo(pos + 5, start);
+            ctx.moveTo(pos, start); ctx.lineTo(pos, end);
+            ctx.moveTo(pos - 5, end); ctx.lineTo(pos + 5, end);
+          }
+          ctx.stroke();
+
+          // Draw Distance Label Bubble
+          if (g.label) {
+            const labelText = g.label;
+            ctx.font = 'bold 9px Inter, sans-serif';
+            const metrics = ctx.measureText(labelText);
+            const padding = 4;
+            const bw = metrics.width + padding * 2;
+            const bh = 14;
+            
+            ctx.beginPath();
+            const bx = g.type === 'h' ? mid - bw/2 : pos + 8;
+            const by = g.type === 'h' ? pos + 8 : mid - bh/2;
+            
+            // Rounded bubble
+            //@ts-ignore
+            if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 4);
+            else ctx.rect(bx, by, bw, bh);
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(labelText, bx + padding, by + bh - 4);
+          }
         } else {
-          const sx = toScreenX(g.pos);
-          ctx.moveTo(sx, 0); ctx.lineTo(sx, canvasH);
+            // Standard Alignment Line
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = g.type === 'h' ? 'rgba(222, 31, 233, 0.6)' : 'rgba(6, 182, 212, 0.6)';
+            ctx.beginPath();
+          if (g.type === 'h') {
+            const sy = toScreenY(g.pos);
+            ctx.moveTo(0, sy); ctx.lineTo(canvasW, sy);
+          } else {
+            const sx = toScreenX(g.pos);
+            ctx.moveTo(sx, 0); ctx.lineTo(sx, canvasH);
+          }
+          ctx.stroke();
         }
-        ctx.stroke();
+        ctx.restore();
       });
-
-      // ── Canva-style Distance Guides (During Move) ─────────────────────────
-      const active = fabricCanvas.getActiveObject();
-      if (active && ((active as any).isMoving || (active as any).isScaling)) {
-        const r1 = active.getBoundingRect();
-        const tcx = r1.left + r1.width / 2;
-        const tcy = r1.top + r1.height / 2;
-
-        fabricCanvas.getObjects().forEach(obj => {
-          if (obj === active || (obj as any).isPageBackground || (obj as any).excludeFromExport || (obj as any).isAnchor) return;
-          const r2 = obj.getBoundingRect();
-          const ocx = r2.left + r2.width / 2;
-          const ocy = r2.top + r2.height / 2;
-
-          const dx = Math.abs(tcx - ocx);
-          const dy = Math.abs(tcy - ocy);
-
-          const scale = useStore.getState().settings.width / 800;
-          const THRESH = 40 * scale;
-
-          // If vertically aligned but with gap
-          if (dx < THRESH && (r1.top > r2.top + r2.height || r2.top > r1.top + r1.height)) {
-            const y1 = r1.top > r2.top ? r2.top + r2.height : r2.top;
-            const y2 = r1.top > r2.top ? r1.top : r1.top + r1.height;
-            const dist = Math.abs(y2 - y1);
-            if (dist < 400 * scale) {
-              const sx = toScreenX(tcx);
-              const sy1 = toScreenY(y1);
-              const sy2 = toScreenY(y2);
-              ctx.save();
-              ctx.setLineDash([]);
-              ctx.strokeStyle = '#de1fe9';
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.moveTo(sx, sy1); ctx.lineTo(sx, sy2); ctx.stroke();
-              drawDistanceLabel(sx + 24, (sy1 + sy2) / 2, (dist / scale / 10).toFixed(1));
-              ctx.restore();
-            }
-          }
-
-          // If horizontally aligned but with gap
-          if (dy < THRESH && (r1.left > r2.left + r2.width || r2.left > r1.left + r1.width)) {
-            const x1 = r1.left > r2.left ? r2.left + r2.width : r2.left;
-            const x2 = r1.left > r2.left ? r1.left : r1.left + r1.width;
-            const dist = Math.abs(x2 - x1);
-            if (dist < 400 * scale) {
-              const sy = toScreenY(tcy);
-              const sx1 = toScreenX(x1);
-              const sx2 = toScreenX(x2);
-              ctx.save();
-              ctx.setLineDash([]);
-              ctx.strokeStyle = '#de1fe9';
-              ctx.lineWidth = 1;
-              ctx.beginPath(); ctx.moveTo(sx1, sy); ctx.lineTo(sx2, sy); ctx.stroke();
-              drawDistanceLabel((sx1 + sx2) / 2, sy - 20, (dist / scale / 10).toFixed(1));
-              ctx.restore();
-            }
-          }
-        });
-      }
       
       // ── Spacing Guides (Alt-hover) ────────────────────────────────────────
       if (useStore.getState().isAltPressed) {
@@ -1658,7 +1689,6 @@ export const CanvasArea: React.FC = () => {
         if (draggingGuide) {
           setDraggingGuide(prev => prev ? { ...prev, pos: prev.type === 'h' ? y : x } : null);
         }
-      }}
       }}
       onMouseUp={() => {
         if (draggingGuide) {
