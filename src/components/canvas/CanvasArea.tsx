@@ -1251,8 +1251,9 @@ export const CanvasArea: React.FC = () => {
         const grid = getScaledSnapGrid();
         const dims = getRenderDimensions();
         ctx.save();
-        ctx.strokeStyle = 'rgba(0,0,0,0.15)'; // Increased visibility
-        ctx.lineWidth = 0.5;
+        ctx.setLineDash([]); // Ensure solid lines
+        ctx.strokeStyle = 'rgba(0,0,0,0.06)'; // Faint and fixed
+        ctx.lineWidth = 1; 
         
         const gridXStart = Math.max(0, toScreenX(0));
         const gridXEnd = Math.min(canvasW, toScreenX(dims.width));
@@ -1261,13 +1262,13 @@ export const CanvasArea: React.FC = () => {
 
         // Vertical lines
         for (let x = 0; x <= dims.width + 0.1; x += grid) {
-          const sx = toScreenX(x);
+          const sx = Math.round(toScreenX(x));
           if (sx < 0 || sx > canvasW) continue;
           ctx.beginPath(); ctx.moveTo(sx, gridYStart); ctx.lineTo(sx, gridYEnd); ctx.stroke();
         }
         // Horizontal lines
         for (let y = 0; y <= dims.height + 0.1; y += grid) {
-          const sy = toScreenY(y);
+          const sy = Math.round(toScreenY(y));
           if (sy < 0 || sy > canvasH) continue;
           ctx.beginPath(); ctx.moveTo(gridXStart, sy); ctx.lineTo(gridXEnd, sy); ctx.stroke();
         }
@@ -1279,7 +1280,7 @@ export const CanvasArea: React.FC = () => {
       // Draggable guide lines
       ctx.setLineDash([4, 4]);
       guideLines?.forEach(g => {
-        ctx.strokeStyle = '#f97316';
+        ctx.strokeStyle = '#3b82f6';
         ctx.beginPath();
         if (g.orientation === 'horizontal') {
           const sy = toScreenY(g.position);
@@ -1315,8 +1316,8 @@ export const CanvasArea: React.FC = () => {
           const r1 = active.getBoundingRect();
           const r2 = hover.getBoundingRect();
           
-          ctx.strokeStyle = '#f97316'; // Orange
-          ctx.fillStyle = '#f97316';
+          ctx.strokeStyle = '#3b82f6'; // Blue spacing guide
+          ctx.fillStyle = '#3b82f6';
           ctx.lineWidth = 1 / currentZoom;
           ctx.font = `${10 / currentZoom}px Inter, sans-serif`;
           ctx.textAlign = 'center';
