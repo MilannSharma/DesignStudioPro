@@ -362,6 +362,7 @@ export const CanvasArea: React.FC = () => {
     fabricCanvas.on('object:moving', (options) => {
       const target = options.target;
       if (target && !(target as any).isPageBackground) {
+        (target as any).isMoving = true;
         const objRect = target.getBoundingRect();
 
         const guides = computeSmartGuides(target, fabricCanvas);
@@ -423,6 +424,7 @@ export const CanvasArea: React.FC = () => {
     fabricCanvas.on('object:scaling', (options) => {
       const target = options.target;
       if (target && !(target as any).isPageBackground) {
+        (target as any).isScaling = true;
         const guides = computeSmartGuides(target, fabricCanvas);
         smartGuidesRef.current = guides;
         fabricCanvas.requestRenderAll();
@@ -432,6 +434,8 @@ export const CanvasArea: React.FC = () => {
     fabricCanvas.on('object:modified', (e) => { 
       smartGuidesRef.current = []; 
       if (e.target) {
+        (e.target as any).isMoving = false;
+        (e.target as any).isScaling = false;
         enforceBoundaries(e.target);
         e.target.set('objectCaching', true);
       }
@@ -1246,6 +1250,40 @@ export const CanvasArea: React.FC = () => {
       const toScreenX = (x: number) => x * currentZoom + vpt[4];
       const toScreenY = (y: number) => y * currentZoom + vpt[5];
 
+      const drawDistanceLabel = (x: number, y: number, text: string) => {
+        const padding = 4;
+        const fontSize = 10;
+        ctx.font = `bold ${fontSize}px Inter, sans-serif`;
+        const metrics = ctx.measureText(text);
+        const w = metrics.width + padding * 3;
+        const h = fontSize + padding * 2;
+
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#de1fe9'; // Canva Magenta
+        
+        // Draw rounded rect
+        const r = 4;
+        ctx.beginPath();
+        ctx.moveTo(x - w / 2 + r, y - h / 2);
+        ctx.lineTo(x + w / 2 - r, y - h / 2);
+        ctx.quadraticCurveTo(x + w / 2, y - h / 2, x + w / 2, y - h / 2 + r);
+        ctx.lineTo(x + w / 2, y + h / 2 - r);
+        ctx.quadraticCurveTo(x + w / 2, y + h / 2, x + w / 2 - r, y + h / 2);
+        ctx.lineTo(x - w / 2 + r, y + h / 2);
+        ctx.quadraticCurveTo(x - w / 2, y + h / 2, x - w / 2, y + h / 2 - r);
+        ctx.lineTo(x - w / 2, y - h / 2 + r);
+        ctx.quadraticCurveTo(x - w / 2, y - h / 2, x - w / 2 + r, y - h / 2);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x, y + 0.5);
+        ctx.restore();
+      };
+
       // ── GRID ───────────────────────────────────────────────────────────────
       if (state.showGrid) {
         const grid = getScaledSnapGrid();
@@ -1294,9 +1332,9 @@ export const CanvasArea: React.FC = () => {
 
       // Smart Guides (Canva-style Magenta/Cyan)
       ctx.setLineDash([5, 5]);
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1;
       smartGuidesRef.current.forEach(g => {
-        ctx.strokeStyle = g.type === 'h' ? '#de1fe9' : '#06b6d4'; // Magenta for H, Cyan for V
+        ctx.strokeStyle = '#de1fe9'; // Magenta
         ctx.beginPath();
         if (g.type === 'h') {
           const sy = toScreenY(g.pos);
@@ -1307,6 +1345,65 @@ export const CanvasArea: React.FC = () => {
         }
         ctx.stroke();
       });
+
+      // ── Canva-style Distance Guides (During Move) ─────────────────────────
+      const active = fabricCanvas.getActiveObject();
+      if (active && ((active as any).isMoving || (active as any).isScaling)) {
+        const r1 = active.getBoundingRect();
+        const tcx = r1.left + r1.width / 2;
+        const tcy = r1.top + r1.height / 2;
+
+        fabricCanvas.getObjects().forEach(obj => {
+          if (obj === active || (obj as any).isPageBackground || (obj as any).excludeFromExport || (obj as any).isAnchor) return;
+          const r2 = obj.getBoundingRect();
+          const ocx = r2.left + r2.width / 2;
+          const ocy = r2.top + r2.height / 2;
+
+          const dx = Math.abs(tcx - ocx);
+          const dy = Math.abs(tcy - ocy);
+
+          const scale = useStore.getState().settings.width / 800;
+          const THRESH = 40 * scale;
+
+          // If vertically aligned but with gap
+          if (dx < THRESH && (r1.top > r2.top + r2.height || r2.top > r1.top + r1.height)) {
+            const y1 = r1.top > r2.top ? r2.top + r2.height : r2.top;
+            const y2 = r1.top > r2.top ? r1.top : r1.top + r1.height;
+            const dist = Math.abs(y2 - y1);
+            if (dist < 400 * scale) {
+              const sx = toScreenX(tcx);
+              const sy1 = toScreenY(y1);
+              const sy2 = toScreenY(y2);
+              ctx.save();
+              ctx.setLineDash([]);
+              ctx.strokeStyle = '#de1fe9';
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(sx, sy1); ctx.lineTo(sx, sy2); ctx.stroke();
+              drawDistanceLabel(sx + 24, (sy1 + sy2) / 2, (dist / scale / 10).toFixed(1));
+              ctx.restore();
+            }
+          }
+
+          // If horizontally aligned but with gap
+          if (dy < THRESH && (r1.left > r2.left + r2.width || r2.left > r1.left + r1.width)) {
+            const x1 = r1.left > r2.left ? r2.left + r2.width : r2.left;
+            const x2 = r1.left > r2.left ? r1.left : r1.left + r1.width;
+            const dist = Math.abs(x2 - x1);
+            if (dist < 400 * scale) {
+              const sy = toScreenY(tcy);
+              const sx1 = toScreenX(x1);
+              const sx2 = toScreenX(x2);
+              ctx.save();
+              ctx.setLineDash([]);
+              ctx.strokeStyle = '#de1fe9';
+              ctx.lineWidth = 1;
+              ctx.beginPath(); ctx.moveTo(sx1, sy); ctx.lineTo(sx2, sy); ctx.stroke();
+              drawDistanceLabel((sx1 + sx2) / 2, sy - 20, (dist / scale / 10).toFixed(1));
+              ctx.restore();
+            }
+          }
+        });
+      }
       
       // ── Spacing Guides (Alt-hover) ────────────────────────────────────────
       if (useStore.getState().isAltPressed) {
@@ -1562,35 +1659,6 @@ export const CanvasArea: React.FC = () => {
           setDraggingGuide(prev => prev ? { ...prev, pos: prev.type === 'h' ? y : x } : null);
         }
       }}
-      onClick={() => {
-        if (draggingGuide) {
-          const pos = draggingGuide.type === 'h' ? containerMouseRef.current.y : containerMouseRef.current.x;
-          
-          if (draggingGuide.existingId) {
-            // If moved back to ruler, remove it
-            if (pos <= 24) {
-              removeGuideLine(draggingGuide.existingId);
-            } else {
-              // Update: remove old and add new at current pos
-              removeGuideLine(draggingGuide.existingId);
-              addGuideLine({
-                id: Math.random().toString(36).substr(2, 9),
-                orientation: draggingGuide.type === 'h' ? 'horizontal' : 'vertical',
-                position: pos
-              });
-            }
-          } else {
-            // New guide placement
-            if (pos > 24) {
-              addGuideLine({
-                id: Math.random().toString(36).substr(2, 9),
-                orientation: draggingGuide.type === 'h' ? 'horizontal' : 'vertical',
-                position: pos
-              });
-            }
-          }
-          setDraggingGuide(null);
-        }
       }}
       onMouseUp={() => {
         if (draggingGuide) {
@@ -1608,7 +1676,7 @@ export const CanvasArea: React.FC = () => {
               });
             }
           } else {
-            if (pos > 100) { 
+            if (pos > 24) { 
               addGuideLine({
                 id: Math.random().toString(36).substr(2, 9),
                 orientation: draggingGuide.type === 'h' ? 'horizontal' : 'vertical',
