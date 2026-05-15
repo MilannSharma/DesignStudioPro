@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Devnew';
+  src: url('/fonts/lohit-master/Devnew.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'GoNotoKurrent';
+  src: url('/fonts/lohit-master/GoNotoKurrent-Regular.ttf') format('truetype');
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --bg-studio: #f3f4f6;
+  --bg-nav: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #f9fafb;
+  --bg-input: #ffffff;
+  --border-studio: #e5e7eb;
+  --accent-blue: #2563eb;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+}
+
+body {
+  @apply bg-[#f3f4f6] text-[#111827] font-sans selection:bg-blue-500/30 overflow-hidden;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-[#f1f1f1];
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-[#ddd] rounded-full border-2 border-[#f1f1f1] hover:bg-[#ccc];
+}
+
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+.canvas-container {
+  @apply shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-shadow duration-300;
+}
+

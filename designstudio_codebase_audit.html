@@ -1,0 +1,309 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.root { padding: 1.5rem 0; max-width: 680px; }
+h1 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
+.tabs { display: flex; gap: 6px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.tab { padding: 6px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); font-size: 13px; cursor: pointer; background: var(--color-background-primary); color: var(--color-text-secondary); transition: all 0.15s; }
+.tab.active { background: var(--color-background-primary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
+.section { display: none; flex-direction: column; gap: 10px; }
+.section.visible { display: flex; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; }
+.card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: var(--border-radius-md); }
+.badge-red { background: #FCEBEB; color: #A32D2D; }
+.badge-amber { background: #FAEEDA; color: #854F0B; }
+.badge-blue { background: #E6F1FB; color: #185FA5; }
+.badge-green { background: #EAF3DE; color: #3B6D11; }
+.badge-purple { background: #EEEDFE; color: #534AB7; }
+.badge-teal { background: #E1F5EE; color: #0F6E56; }
+.card-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.card-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+.items { display: flex; flex-direction: column; gap: 6px; }
+.item { display: flex; gap: 8px; align-items: flex-start; }
+.dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.dot-red { background: #E24B4A; }
+.dot-amber { background: #EF9F27; }
+.dot-blue { background: #378ADD; }
+.dot-green { background: #639922; }
+.dot-purple { background: #7F77DD; }
+.dot-teal { background: #1D9E75; }
+.item-text { font-size: 13px; color: var(--color-text-primary); line-height: 1.5; }
+.item-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 1px; }
+.section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.5rem; margin-bottom: 2px; }
+.divider { height: 0.5px; background: var(--color-border-tertiary); margin: 0.25rem 0; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip { font-size: 11px; padding: 3px 9px; border-radius: 100px; border: 0.5px solid var(--color-border-secondary); color: var(--color-text-secondary); background: var(--color-background-secondary); }
+.count-pill { margin-left: auto; font-size: 11px; color: var(--color-text-secondary); background: var(--color-background-secondary); padding: 2px 8px; border-radius: 100px; }
+.stack-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
+</style>
+
+<div class="root">
+<h2 class="sr-only">Design Studio Pro — full codebase audit: bugs to fix, enhancements, and missing features</h2>
+<h1>Design Studio Pro — Codebase Audit</h1>
+<p class="subtitle">End-to-end analysis across 15 source files · Fabric.js 7 · React 19 · Vite 6</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('bugs')">🐛 Bugs to Fix</button>
+  <button class="tab" onclick="show('enhance')">⚡ Enhancements</button>
+  <button class="tab" onclick="show('add')">✨ Features to Add</button>
+  <button class="tab" onclick="show('tools')">🛠 Tools to Add</button>
+  <button class="tab" onclick="show('arch')">🏗 Architecture</button>
+</div>
+
+<div id="bugs" class="section visible">
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-red">CRITICAL</span><span class="card-title">UX-Breaking Issues</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">Text tool uses <code>window.confirm()</code> / <code>window.prompt()</code> — blocks browser thread, feels ancient, breaks flow entirely</div><div class="item-sub">Replace with inline floating modal or inline options in FloatingToolbar</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">Polygon & Star tools also use <code>window.prompt()</code> for input — same problem</div><div class="item-sub">Use a floating popover positioned near cursor on mouse:down</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">Callout direction uses <code>window.prompt()</code> — should be a mini toolbar that appears on draw</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">History (undo/redo) blocks on <code>loadFromJSON</code> — no loading state shown, canvas flickers on complex pages</div><div class="item-sub">Debounce saveHistory; add micro-spinner or optimistic UI during load</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">Object boundary enforcement clips objects while dragging — feels like hitting a wall instead of smooth stopping</div><div class="item-sub">Apply clamping on mouse:up only, not on mouse:move for better feel</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-amber">HIGH</span><span class="card-title">Logic & State Bugs</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><code>fitProjectToScreen</code>, <code>centerProject</code>, <code>zoomTo100</code> are empty stubs in the store — overridden by CanvasArea but never wired back; direct store calls fail silently</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Undo/Redo saves history on EVERY <code>object:added</code> — including shape draw preview objects (<code>isDrawingPreview</code> guard is partial)</div><div class="item-sub">All intermediary drawing objects should be fully excluded from history</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Page switching is synchronous — <code>setCurrentPage</code> saves current page first, but if canvas is mid-draw, partial state gets saved</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Copy/Paste (<code>Ctrl+V</code>) uses top-level <code>await import('fabric')</code> inside keydown handler — can cause timing issues in Firefox</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Smart guides display via <code>smartGuidesRef</code> but the render overlay is never actually drawn — guides are computed but invisible to the user</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Spiral and Callout don't respect document color scheme — hardcoded colors don't follow the active fill/stroke from PropertiesPanel</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Pen tool path anchors <code>isAnchor</code> flag is not excluded from export — anchors appear in exported SVG/JSON</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">LayersPanel only re-renders on <code>selectedObjects</code> change — adding/removing objects on canvas doesn't auto-refresh the panel</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-blue">MEDIUM</span><span class="card-title">Minor Bugs & Polish Issues</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Ruler mouse position readout lags — <code>mousePos</code> state update on every <code>mouse:move</code> triggers full React re-render of CanvasArea</div><div class="item-sub">Use <code>ref</code> + direct DOM manipulation for ruler cursor lines</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Guide lines dragged off-canvas are not removed — they persist invisibly and accumulate in state</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Zoom via scroll uses <code>0.999 ** delta</code> — extremely slow on trackpads with deltaY=3; should normalize delta</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Context menu appears on right-click even when in text editing mode — should be suppressed</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">ShapeLibrary component imported in App.tsx but not visible in the file's JSX render — likely dead import</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Export to PDF uses <code>jsPDF</code> rasterization — not vector; complex layouts lose sharpness at print resolution</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">PropertiesPanel unit conversion (mm/cm/inch) doesn't recalculate on unit change — existing values stay in old unit</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="enhance" class="section">
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-purple">CANVAS FEEL</span><span class="card-title">Smoothness & Interaction</span><span class="count-pill">Like Figma/CorelDraw</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Add <strong>smooth inertia panning</strong> — when hand tool is released, continue scrolling and decelerate naturally</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Draw smart guide lines visually on canvas (pink/cyan dashed lines) while dragging — currently computed but never rendered</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Add <strong>spacing guides</strong> (like Figma) — show distance between selected object and others while dragging</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Constrain aspect ratio on Shift+drag for shapes (already done for some, verify all shapes including images)</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Add <strong>multi-select rubber-band</strong> that highlights objects while dragging selection box (Fabric default selection is too subtle)</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Zoom to cursor position (currently zooms toward canvas center, not cursor position) — fix <code>zoomToPoint</code> viewport math</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Add <strong>pinch-to-zoom</strong> touch support for tablet/mobile use</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text">Double-click on group to <strong>enter isolation mode</strong> (edit group contents without ungrouping) — Illustrator/Figma behavior</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-teal">PROPERTIES PANEL</span><span class="card-title">PropertiesPanel Upgrades</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>opacity slider</strong> with percentage display (currently missing from selected-object properties)</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>corner radius</strong> control for rectangles (Fabric supports <code>rx/ry</code> but UI has no control)</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>stroke dash pattern</strong> picker (solid, dashed, dotted, dot-dash)</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Show <strong>X/Y coordinates</strong> in document units (not canvas pixels) with live update while dragging</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>blend mode</strong> selector (multiply, screen, overlay) — Fabric supports <code>globalCompositeOperation</code></div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>shadow controls</strong> — offset X/Y, blur radius, spread, color — Fabric has full shadow support</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>text spacing</strong> controls — letter-spacing, line-height, paragraph spacing</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text">Add <strong>W × H lock aspect ratio</strong> toggle when resizing numerically from properties</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-amber">LAYERS PANEL</span><span class="card-title">Layers Panel Upgrades</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Add <strong>drag to reorder layers</strong> — currently only [ ] keyboard shortcuts work, no drag-and-drop in panel</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Show <strong>object thumbnail</strong> preview in layer row (not just type icon)</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Add <strong>layer groups/folders</strong> — group multiple layers into a collapsible folder</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Auto-refresh layer list on any canvas change (subscribe to <code>canvas.on('object:added/removed/modified')</code>)</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Add <strong>multi-select in layers panel</strong> with Shift+click / Ctrl+click</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-green">EXPORT</span><span class="card-title">Export Quality Upgrades</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text">PDF export should use actual SVG-to-PDF pipeline (e.g. <code>svg2pdf.js</code>) not rasterized jsPDF for vector quality</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text">Add <strong>DPI-aware PNG export</strong> — multiply canvas pixel dimensions by DPI ratio for print-resolution output</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text">Add <strong>WebP export</strong> option</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text">Add <strong>Export All Pages</strong> as ZIP — jsPDF multipage is half-done, needs ZIP bundle for individual PNGs</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text">Add export <strong>bleed crop marks</strong> option for print-ready PDFs</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-blue">COLOR</span><span class="card-title">Color System Upgrades</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Add <strong>HSL/HSB color picker</strong> (currently only hex + recent swatches)</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Add <strong>global color swatches/palette</strong> — brand colors users can save and reuse across the project</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Gradient panel exists but needs <strong>multi-stop gradients</strong> and radial/conic gradient types</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Add <strong>CMYK color input</strong> (doc already has colorMode: 'cmyk' setting but no UI for it)</div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="add" class="section">
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-purple">MISSING CORE</span><span class="card-title">Features Missing vs Canva/Photoshop</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Image editing tools</strong> — crop, mask to shape, brightness/contrast/saturation sliders, hue rotation</div><div class="item-sub">Fabric supports filters: Brightness, Contrast, Saturation, Grayscale, Sepia, Blur, Sharpen</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Clipping masks</strong> — clip any object inside any shape (like Photoshop layer masks / Illustrator clipping masks)</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Background remover</strong> — AI-powered remove.bg integration or canvas-based flood fill removal</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Text on a path</strong> — wrap text along a curve/circle (CorelDraw signature feature)</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Pattern fill</strong> — fill shapes with repeating image/SVG patterns (stripes, dots, custom)</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Templates library</strong> — built-in starter templates (ID card, certificate, flyer, poster, banner) accessible from ProjectSetupModal</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Multi-page thumbnail strip</strong> — show page thumbnails in a sidebar/bottom strip like InDesign/Canva</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Object effects</strong> — outline stroke on text, inner glow, bevel/emboss</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Find & Replace text</strong> across all pages — crucial for batch template editing</div></div></div>
+      <div class="item"><div class="dot dot-purple"></div><div><div class="item-text"><strong>Ruler guides with snap</strong> — drag-from-ruler guides exist but have no snap targets (snap to guide is missing)</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-teal">DATA MERGE</span><span class="card-title">Data Merge / Batch Features</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text"><strong>Bulk export</strong> — generate 1 rendered image per CSV row automatically (the core value prop of this app)</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text"><strong>CSV preview table</strong> — show all rows before batch export with validation warnings for missing fields</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text"><strong>Per-row photo mapping</strong> — map CSV image URL column to photo placeholder automatically</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text"><strong>Batch export progress bar</strong> — current export gives no feedback for large datasets</div></div></div>
+      <div class="item"><div class="dot dot-teal"></div><div><div class="item-text"><strong>Export naming pattern</strong> — let user define filename as template e.g. <code>{{name}}_{{roll_no}}.png</code></div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-amber">COLLAB & SAVE</span><span class="card-title">Project Management</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Auto-save</strong> — save to localStorage every 30 seconds (currently only Ctrl+S)</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Version history</strong> — named save points ("Version 1", "After feedback") beyond simple undo stack</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Project thumbnails</strong> — show canvas thumbnail when opening saved .json files</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Share link / embed</strong> — generate read-only preview URL</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Cloud save</strong> — save to Google Drive (MCP connector available) or Dropbox</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-blue">AI</span><span class="card-title">AI Enhancements</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>AI image generation</strong> — generate placeholder images or backgrounds from text prompt (Gemini Imagen)</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>AI layout from screenshot</strong> — upload reference image, AI recreates the layout as editable objects</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>Smart text suggestions</strong> — AI completes slogans, titles, certificate text based on context</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>AI color palette</strong> — generate harmonious palettes from a seed color or brand description</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>AI font pairing</strong> — suggest complementary font pairings for the selected display font</div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="tools" class="section">
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-red">NOT YET IN TOOLBAR</span><span class="card-title">Drawing & Shape Tools to Add</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Rounded Rectangle tool</strong> — listed in Toolbar but not wired in CanvasArea mouse:down handler (tool ID exists as 'roundedRect' but no handler)</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Bezier Curve tool</strong> — pen tool is straight-line only; true bezier with control handles is missing</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Freehand Eraser</strong> — eraser tool is listed in types but no canvas handler exists</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Table tool</strong> — insert editable grid/table (certificate marks, data display)</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Barcode generator</strong> — 1D barcode (Code128, EAN) alongside existing QR code tool</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Chart/graph tool</strong> — bar, pie, line charts populated from CSV data fields</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Crop tool</strong> — non-destructive crop for images (mask-based)</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><strong>Measurement tool</strong> — click-drag to measure distances in document units</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-amber">TYPOGRAPHY TOOLS</span><span class="card-title">Text Tools to Add</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Text styles</strong> — save H1/H2/Body/Caption styles and apply with one click (like Figma styles)</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>OpenType features</strong> — ligatures, small caps, tabular numbers for professional typography</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Vertical text tool</strong> — <code>v-text</code> is in the types list but has no toolbar button or handler</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Text overflow linking</strong> — flow text between multiple text boxes (InDesign-style threading)</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><strong>Spell checker</strong> — basic browser spell-check is disabled in Fabric Textbox by default; needs re-enabling</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-green">VIEW TOOLS</span><span class="card-title">View & Navigation Tools</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text"><strong>Zoom tool</strong> (magnifying glass) — click-to-zoom-in with Alt+click to zoom out</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text"><strong>Navigator panel</strong> — mini-map overview of full canvas with viewport box (like Photoshop/CorelDraw)</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text"><strong>Presentation mode</strong> — full-screen slideshow of pages (beyond current export preview)</div></div></div>
+      <div class="item"><div class="dot dot-green"></div><div><div class="item-text"><strong>Pixel grid</strong> at high zoom levels (>400%) for precise pixel-level work</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-blue">ASSET TOOLS</span><span class="card-title">Asset Management Tools</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>Asset panel</strong> — thumbnails of all imported images with drag-to-canvas support (currently only URL array in store)</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>Unsplash / Pexels integration</strong> — search and insert free stock photos without leaving the app</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>SVG import</strong> — paste raw SVG code or upload .svg files as editable vector objects</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>Icon library panel</strong> — searchable icon library (Font Awesome / Lucide) insertable as SVG</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text"><strong>Google Fonts browser</strong> — search fonts with live preview instead of flat dropdown (800+ fonts available)</div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="arch" class="section">
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-red">PERFORMANCE</span><span class="card-title">Architecture & Performance Issues</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">CanvasArea is a <strong>1400-line monolith</strong> — mouse:down, mouse:move, mouse:up all in one useEffect; split into tool-specific handlers using a strategy pattern</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">PropertiesPanel is a <strong>900+ line monolith</strong> — extract TextProperties, ShapeProperties, ImageProperties, AlignmentBar into separate components</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text"><code>setMousePos</code> on every <code>mouse:move</code> causes <strong>full React re-render 60fps</strong> — move ruler rendering to a canvas overlay or use <code>useRef</code> + direct DOM</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">History stores full JSON strings on every change — on a complex canvas this is <strong>MBs of data per action</strong>; use JSON diff patches (e.g. <code>fast-json-patch</code>) instead</div></div></div>
+      <div class="item"><div class="dot dot-red"></div><div><div class="item-text">All fonts are eagerly preloaded in a hidden <code>div</code> on App mount — this fires hundreds of Google Fonts requests on startup; use <strong>on-demand font loading</strong> only when selected</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-amber">CODE QUALITY</span><span class="card-title">Code Quality Improvements</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">Multiple <code>cn()</code> helpers defined identically in 6+ files — extract to <code>src/lib/utils.ts</code> and import</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text"><code>CUSTOM_PROPS</code> array duplicated in <code>useStore.ts</code> and <code>TopBar.tsx</code> — single source of truth needed</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">All tool logic (draw, pan, pen, eyedropper) inside <code>CanvasArea</code> — implement a <strong>Tool interface</strong> with <code>onMouseDown/Move/Up</code> methods per tool</div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">No error boundaries — a crash in any panel kills the whole UI; wrap major panels in <code>ErrorBoundary</code></div></div></div>
+      <div class="item"><div class="dot dot-amber"></div><div><div class="item-text">No keyboard shortcut registry — shortcuts are scattered across App.tsx and CanvasArea; centralize in a <code>useKeyboardShortcuts</code> hook with a cheatsheet panel</div></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="badge badge-blue">STACK</span><span class="card-title">Tech Stack</span></div>
+    <div class="items">
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Fabric.js 7 — good choice, well-suited for this use case</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Zustand 5 — correct for this scale; consider splitting into <code>canvasSlice</code>, <code>uiSlice</code>, <code>projectSlice</code></div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Consider adding <strong>Web Workers</strong> for batch export processing to avoid blocking the main thread</div></div></div>
+      <div class="item"><div class="dot dot-blue"></div><div><div class="item-text">Add <strong>IndexedDB persistence</strong> (via <code>idb-keyval</code>) for auto-save — localStorage can't handle large canvas JSON</div></div></div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('visible'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('visible');
+  event.target.classList.add('active');
+}
+</script>
